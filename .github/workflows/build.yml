@@ -72,8 +72,8 @@ jobs:
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
                   targetSdk 28
-                  versionCode 2
-                  versionName '2.0'
+                  versionCode 3
+                  versionName '3.0'
               }
           }
           EOF
@@ -140,7 +140,7 @@ jobs:
                   LinearLayout root = new LinearLayout(this);
                   root.setOrientation(1);
                   root.setPadding(28, 40, 28, 28);
-
+                  root.setMinimumHeight(dp(360));
                   TextView title = new TextView(this);
                   title.setText("🇺🇿 Özbek Keyboard 2.0");
                   title.setTextSize(26);
