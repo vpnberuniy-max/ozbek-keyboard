@@ -72,8 +72,8 @@ jobs:
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
                   targetSdk 28
-                  versionCode 3
-                  versionName '3.0'
+                  versionCode 4
+                  versionName '4.0'
               }
           }
           EOF
@@ -121,7 +121,7 @@ jobs:
 
           cat > app/src/main/java/com/ozbekkeyboard/MainActivity.java <<'EOF'
           package com.ozbekkeyboard;
-
+           
           import android.app.Activity;
           import android.os.Bundle;
           import android.content.Context;
@@ -269,7 +269,7 @@ jobs:
                                    boolean special) {
                   TextView b = new TextView(this);
                   b.setText(label);
-                  b.setTextSize(17);
+                  b.setTextSize(20);
                   b.setGravity(Gravity.CENTER);
                   b.setSingleLine(true);
                   b.setTypeface(Typeface.DEFAULT);
@@ -360,7 +360,7 @@ jobs:
                       TextView b = key(labels[i], actions[i], true);
 
                       LinearLayout.LayoutParams p =
-                          new LinearLayout.LayoutParams(0, dp(52), weights[i]);
+                          new LinearLayout.LayoutParams(0, dp(65), weights[i]);
                       p.setMargins(dp(2), dp(3), dp(2), dp(3));
                       row.addView(b, p);
                   }
@@ -393,7 +393,7 @@ jobs:
                   addRow(new String[]{
                       "1","2","3","4","5",
                       "6","7","8","9","0"
-                  }, 43);
+                  }, 52);
               }
 
               private String convert(String s) {
@@ -406,7 +406,7 @@ jobs:
                   for (int i = 0; i < keys.length; i++) {
                       result[i] = convert(keys[i]);
                   }
-                  addRow(result, 49);
+                  addRow(result, 58);
               }
 
               private void addUzbek() {
