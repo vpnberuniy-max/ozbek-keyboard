@@ -1,0 +1,322 @@
+
+name: Build Ozbek Keyboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/java/com/ozbekkeyboard
+          mkdir -p app/src/main/res/xml
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "OzbekKeyboard"
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.ozbekkeyboard'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.ozbekkeyboard'
+                  minSdk 23
+                  targetSdk 28
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:theme="@android:style/Theme.Material.Light.NoActionBar"
+                  android:label="Özbek Keyboard">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+
+                  <service
+                      android:name=".KeyboardService"
+                      android:label="Özbek Keyboard"
+                      android:permission="android.permission.BIND_INPUT_METHOD"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.view.InputMethod"/>
+                      </intent-filter>
+                      <meta-data
+                          android:name="android.view.im"
+                          android:resource="@xml/method"/>
+                  </service>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/xml/method.xml <<'EOF'
+          <input-method xmlns:android="http://schemas.android.com/apk/res/android"
+              android:supportsSwitchingToNextInputMethod="true">
+              <subtype
+                  android:label="Özbekcha"
+                  android:imeSubtypeLocale="uz"
+                  android:imeSubtypeMode="keyboard"/>
+          </input-method>
+          EOF
+
+          cat > app/src/main/java/com/ozbekkeyboard/MainActivity.java <<'EOF'
+          package com.ozbekkeyboard;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.content.Context;
+          import android.view.inputmethod.InputMethodManager;
+          import android.view.inputmethod.InputMethodInfo;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
+
+          public class MainActivity extends Activity {
+              @Override
+              public void onCreate(Bundle b) {
+                  super.onCreate(b);
+
+                  LinearLayout root = new LinearLayout(this);
+                  root.setOrientation(1);
+                  root.setPadding(28, 40, 28, 28);
+
+                  TextView title = new TextView(this);
+                  title.setText("🇺🇿 Özbek Keyboard");
+                  title.setTextSize(28);
+                  root.addView(title);
+
+                  TextView info = new TextView(this);
+                  info.setText(
+                      "\nSamsung uslubidagi shaxsiy klaviatura.\n\n" +
+                      "Tillar: O‘zbekcha, Русский, English\n" +
+                      "Maxsus harflar: Ö Ğ Ç Ş\n" +
+                      "Qora va oq mavzu mavjud.\n\n" +
+                      "Ishlatish uchun avval klaviaturani yoqing."
+                  );
+                  info.setTextSize(17);
+                  root.addView(info);
+
+                  Button enable = new Button(this);
+                  enable.setText("Klaviaturani yoqish");
+                  enable.setOnClickListener(v ->
+                      startActivity(new android.content.Intent(
+                          android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS)));
+                  root.addView(enable);
+
+                  Button select = new Button(this);
+                  select.setText("Klaviaturani tanlash");
+                  select.setOnClickListener(v ->
+                      ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE))
+                          .showInputMethodPicker());
+                  root.addView(select);
+
+                  setContentView(root);
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/ozbekkeyboard/KeyboardService.java <<'EOF'
+          package com.ozbekkeyboard;
+
+          import android.inputmethodservice.InputMethodService;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.content.res.ColorStateList;
+          import android.view.View;
+          import android.view.Gravity;
+          import android.view.inputmethod.InputConnection;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+
+          public class KeyboardService extends InputMethodService {
+              private String language = "UZ";
+              private boolean dark = true;
+              private LinearLayout root;
+
+              @Override
+              public View onCreateInputView() {
+                  return makeKeyboard();
+              }
+
+              private Button key(String label, Runnable action) {
+                  Button b = new Button(this);
+                  b.setText(label);
+                  b.setTextSize(17);
+                  b.setAllCaps(false);
+                  b.setTypeface(null, Typeface.NORMAL);
+                  b.setPadding(0, 0, 0, 0);
+                  b.setMinWidth(0);
+                  b.setMinimumWidth(0);
+                  b.setMinHeight(0);
+                  b.setMinimumHeight(0);
+                  b.setBackgroundTintList(ColorStateList.valueOf(
+                      dark ? Color.rgb(65,68,75) : Color.WHITE));
+                  b.setTextColor(dark ? Color.WHITE : Color.rgb(30,30,30));
+                  b.setOnClickListener(v -> action.run());
+                  return b;
+              }
+
+              private void addRow(String[] keys) {
+                  LinearLayout row = new LinearLayout(this);
+                  row.setOrientation(LinearLayout.HORIZONTAL);
+                  row.setGravity(Gravity.CENTER);
+                  for (String k : keys) {
+                      Button b = key(k, () -> type(k));
+                      LinearLayout.LayoutParams p =
+                          new LinearLayout.LayoutParams(0, 48, 1);
+                      p.setMargins(2, 3, 2, 3);
+                      row.addView(b, p);
+                  }
+                  root.addView(row);
+              }
+
+              private void type(String s) {
+                  InputConnection ic = getCurrentInputConnection();
+                  if (ic == null) return;
+                  if (s.equals("⌫")) {
+                      ic.deleteSurroundingText(1, 0);
+                  } else if (s.equals("↵")) {
+                      ic.commitText("\n", 1);
+                  } else if (s.equals("space")) {
+                      ic.commitText(" ", 1);
+                  } else {
+                      ic.commitText(s, 1);
+                  }
+              }
+
+              private View makeKeyboard() {
+                  root = new LinearLayout(this);
+                  root.setOrientation(LinearLayout.VERTICAL);
+                  root.setPadding(3, 5, 3, 5);
+                  root.setBackgroundColor(
+                      dark ? Color.rgb(35,37,42) : Color.rgb(225,228,233));
+
+                  LinearLayout top = new LinearLayout(this);
+                  top.setGravity(Gravity.CENTER);
+                  Button name = key("Özbek Keyboard", () -> {});
+                  top.addView(name, new LinearLayout.LayoutParams(0, 43, 2));
+
+                  Button lang = key(language + " ▼", () -> {
+                      language = language.equals("UZ") ? "RU" :
+                          language.equals("RU") ? "EN" : "UZ";
+                      refresh();
+                  });
+                  top.addView(lang, new LinearLayout.LayoutParams(0, 43, 1));
+
+                  Button theme = key(dark ? "☀" : "☾", () -> {
+                      dark = !dark;
+                      refresh();
+                  });
+                  top.addView(theme, new LinearLayout.LayoutParams(0, 43, 1));
+                  root.addView(top);
+
+                  if (language.equals("UZ")) {
+                      addRow(new String[]{"Q","W","E","R","T","Y","U","I","O","P"});
+                      addRow(new String[]{"A","S","D","F","G","H","J","K","L"});
+                      addRow(new String[]{"Z","X","C","V","B","N","M","Ö","Ğ","Ç","Ş"});
+                  } else if (language.equals("EN")) {
+                      addRow(new String[]{"Q","W","E","R","T","Y","U","I","O","P"});
+                      addRow(new String[]{"A","S","D","F","G","H","J","K","L"});
+                      addRow(new String[]{"Z","X","C","V","B","N","M"});
+                  } else {
+                      addRow(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"});
+                      addRow(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"});
+                      addRow(new String[]{"Я","Ч","С","М","И","Т","Ь","Б","Ю"});
+                  }
+
+                  LinearLayout bottom = new LinearLayout(this);
+                  bottom.setGravity(Gravity.CENTER);
+
+                  Button switcher = key("🌐", () -> {
+                      language = language.equals("UZ") ? "RU" :
+                          language.equals("RU") ? "EN" : "UZ";
+                      refresh();
+                  });
+                  bottom.addView(switcher, new LinearLayout.LayoutParams(0, 49, 1));
+
+                  Button comma = key(",", () -> type(","));
+                  bottom.addView(comma, new LinearLayout.LayoutParams(0, 49, 1));
+
+                  Button space = key("space", () -> type("space"));
+                  bottom.addView(space, new LinearLayout.LayoutParams(0, 49, 4));
+
+                  Button dot = key(".", () -> type("."));
+                  bottom.addView(dot, new LinearLayout.LayoutParams(0, 49, 1));
+
+                  Button back = key("⌫", () -> type("⌫"));
+                  bottom.addView(back, new LinearLayout.LayoutParams(0, 49, 1));
+
+                  Button enter = key("↵", () -> type("↵"));
+                  bottom.addView(enter, new LinearLayout.LayoutParams(0, 49, 1));
+
+                  root.addView(bottom);
+                  return root;
+              }
+
+              private void refresh() {
+                  setInputView(makeKeyboard());
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ozbek-Keyboard-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
