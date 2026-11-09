@@ -1,4 +1,4 @@
-name: Build Ozbek Keyboard
+Name: Build Ozbek Keyboard
 
 on:
   workflow_dispatch:
@@ -51,9 +51,9 @@ jobs:
               defaultConfig {
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
-                  targetSdk 28
-                  versionCode 4
-                  versionName '4.1'
+                  targetSdk 34
+                  versionCode 5
+                  versionName '5.1'
               }
           }
           EOF
@@ -104,14 +104,14 @@ jobs:
                   super.onCreate(b);
                   LinearLayout root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(28, 40, 28, 28);
+                  root.setPadding(32, 48, 32, 32);
                   TextView title = new TextView(this);
-                  title.setText("🇺🇿 Özbek Keyboard 4.0");
+                  title.setText("🇺🇿 Özbek Keyboard 5.0");
                   title.setTextSize(26);
                   root.addView(title);
                   TextView info = new TextView(this);
-                  info.setText("\nO‘zbekcha maxsus klaviatura\n\nUZ / RU / EN tillari\nÖ Ğ Ç Ş maxsus harflari\nKattaroq tugmalar va balandroq klaviatura\nO‘chirish tugmasini bosib turib tez o‘chirish");
-                  info.setTextSize(17);
+                  info.setText("\nO‘zbekcha maxsus klaviatura (Samsung stilida)\n\n• Ö harfi O va P o‘rtasida\n• Ğ harfi F va G o‘rtasida\n• Ş harfi S va D o‘rtasida\n• Ç harfi C va V o‘rtasida\n• Kengaytirilgan Samsung tugmalar o‘lchami");
+                  info.setTextSize(16);
                   root.addView(info);
                   Button enable = new Button(this);
                   enable.setText("Klaviaturani yoqish");
@@ -139,6 +139,7 @@ jobs:
           import android.view.Gravity;
           import android.view.MotionEvent;
           import android.view.inputmethod.InputConnection;
+          import android.view.inputmethod.InputMethodManager;
           import android.widget.TextView;
           import android.widget.LinearLayout;
 
@@ -152,7 +153,7 @@ jobs:
                   @Override public void run() {
                       if (deleting) {
                           deleteOnce();
-                          handler.postDelayed(this, 65);
+                          handler.postDelayed(this, 60);
                       }
                   }
               };
@@ -178,7 +179,16 @@ jobs:
                           language = language.equals("UZ") ? "RU" : language.equals("RU") ? "EN" : "UZ";
                           shift = true; refresh(); break;
                       case "THEME": dark = !dark; refresh(); break;
-                      case "EMOJI": ic.commitText("🙂", 1); break;
+                      case "EMOJI":
+                          InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                          if (imm != null) {
+                              try {
+                                  imm.showInputMethodPicker();
+                              } catch (Exception e) {
+                                  ic.commitText("😊", 1);
+                              }
+                          }
+                          break;
                       default: ic.commitText(s, 1); break;
                   }
               }
@@ -186,33 +196,36 @@ jobs:
               private GradientDrawable bg(int color) {
                   GradientDrawable d = new GradientDrawable();
                   d.setColor(color);
-                  d.setCornerRadius(dp(8));
+                  d.setCornerRadius(dp(7));
                   return d;
               }
 
               private TextView key(String label, String action, boolean special) {
                   TextView b = new TextView(this);
                   b.setText(label);
-                  b.setTextSize(19);
+                  b.setTextSize(21);
                   b.setGravity(Gravity.CENTER);
                   b.setSingleLine(true);
-                  b.setTypeface(Typeface.DEFAULT);
+                  b.setTypeface(Typeface.SANS_SERIF, Typeface.NORMAL);
                   int color = dark
-                      ? (special ? Color.rgb(83,91,110) : Color.rgb(66,69,77))
-                      : (special ? Color.rgb(190,202,220) : Color.WHITE);
+                      ? (special ? Color.rgb(50, 54, 63) : Color.rgb(63, 68, 79))
+                      : (special ? Color.rgb(180, 190, 205) : Color.WHITE);
                   b.setBackground(bg(color));
-                  b.setTextColor(dark ? Color.WHITE : Color.rgb(30,30,30));
+                  b.setTextColor(dark ? Color.WHITE : Color.rgb(20, 20, 20));
+
                   if ("⌫".equals(action)) {
-                      b.setOnTouchListener((v,e) -> {
+                      b.setOnTouchListener((v, e) -> {
                           if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                              deleting = true; deleteOnce(); handler.postDelayed(repeatDelete, 400); return true;
+                              deleting = true; deleteOnce(); handler.postDelayed(repeatDelete, 350); return true;
                           }
                           if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
                               deleting = false; handler.removeCallbacks(repeatDelete); return true;
                           }
                           return true;
                       });
-                  } else b.setOnClickListener(v -> type(action));
+                  } else {
+                      b.setOnClickListener(v -> type(action));
+                  }
                   return b;
               }
 
@@ -220,62 +233,68 @@ jobs:
                   LinearLayout r = new LinearLayout(this);
                   r.setOrientation(LinearLayout.HORIZONTAL);
                   r.setGravity(Gravity.CENTER);
-                  for (int i=0; i<labels.length; i++) {
+                  for (int i = 0; i < labels.length; i++) {
                       TextView b = key(labels[i], actions[i], special);
                       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(height), 1);
-                      p.setMargins(dp(2), dp(3), dp(2), dp(3));
-                      r.addView(b,p);
+                      p.setMargins(dp(1.5f), dp(3.5f), dp(1.5f), dp(3.5f));
+                      r.addView(b, p);
                   }
                   root.addView(r);
               }
 
               private void letters(String[] a, int h) {
                   String[] labels = new String[a.length];
-                  for (int i=0; i<a.length; i++) labels[i] = shift ? a[i].toUpperCase() : a[i].toLowerCase();
+                  for (int i = 0; i < a.length; i++) {
+                      labels[i] = shift ? a[i].toUpperCase() : a[i].toLowerCase();
+                  }
                   row(labels, labels, h, false);
               }
 
               private void header() {
-                  row(new String[]{"Özbek Keyboard", language+" ▼", dark ? "☀" : "☾"},
-                      new String[]{"", "LANG", "THEME"}, 42, true);
+                  row(new String[]{"Özbek Keyboard", language + " ▼", dark ? "☀" : "☾"},
+                      new String[]{"", "LANG", "THEME"}, 40, true);
               }
 
               private void bottom() {
-                  String[] labels = {"🌐","☺",",","space",".","⌫","↵"};
-                  String[] actions = {"LANG","EMOJI",",","SPACE",".","⌫","↵"};
-                  float[] weights = {1,1,1,4,1,1,1};
+                  String[] labels = {"🌐", "😊", ",", "space", ".", "⌫", "↵"};
+                  String[] actions = {"LANG", "EMOJI", ",", "SPACE", ".", "⌫", "↵"};
+                  float[] weights = {1.1f, 1.1f, 1f, 4.5f, 1f, 1.2f, 1.3f};
                   LinearLayout r = new LinearLayout(this);
                   r.setGravity(Gravity.CENTER);
-                  for (int i=0; i<labels.length; i++) {
-                      TextView b = key(labels[i],actions[i],true);
-                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0,dp(56),weights[i]);
-                      p.setMargins(dp(2),dp(3),dp(2),dp(3));
-                      r.addView(b,p);
+                  for (int i = 0; i < labels.length; i++) {
+                      TextView b = key(labels[i], actions[i], true);
+                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(60), weights[i]);
+                      p.setMargins(dp(1.5f), dp(3.5f), dp(1.5f), dp(3.5f));
+                      r.addView(b, p);
                   }
                   root.addView(r);
               }
 
               private void uzbek() {
-                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"},52);
-                  letters(new String[]{"A","S","D","F","G","H","J","K","L"},52);
-                  row(new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
-                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"},54,true);
-                  String[] special = {shift?"Ö":"ö",shift?"Ğ":"ğ",shift?"Ç":"ç",shift?"Ş":"ş"};
-                  row(special,special,48,true);
+                  // 1-qator: Ö harfi O va P o'rtasida
+                  letters(new String[]{"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "Ö", "P"}, 58);
+                  // 2-qator: S va D o'rtasida Ş, F va G o'rtasida Ğ
+                  letters(new String[]{"A", "S", "Ş", "D", "F", "Ğ", "G", "H", "J", "K", "L"}, 58);
+                  // 3-qator: C va V o'rtasida Ç
+                  String[] r3 = shift 
+                      ? new String[]{"⇧", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"}
+                      : new String[]{"⇧", "z", "x", "c", "ç", "v", "b", "n", "m", "⌫"};
+                  String[] act3 = {"SHIFT", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"};
+                  row(r3, act3, 58, true);
               }
 
               private void english() {
-                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"},52);
-                  letters(new String[]{"A","S","D","F","G","H","J","K","L"},52);
+                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"}, 58);
+                  letters(new String[]{"A","S","D","F","G","H","J","K","L"}, 58);
                   row(new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
-                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"},54,true);
+                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"}, 58, true);
               }
 
               private void russian() {
-                  letters(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"},52);
-                  letters(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"},52);
+                  letters(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"}, 58);
+                  letters(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"}, 58);
                   row(new String[]{"⇧","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},
-                      new String[]{"SHIFT","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},54,true);
+                      new String[]{"SHIFT","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"}, 58, true);
               }
 
               private View makeKeyboard() {
@@ -283,11 +302,11 @@ jobs:
                   handler.removeCallbacks(repeatDelete);
                   root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(dp(3),dp(4),dp(3),dp(5));
-                  root.setBackgroundColor(dark ? Color.rgb(34,36,42) : Color.rgb(220,224,231));
+                  root.setPadding(dp(2), dp(4), dp(2), dp(6));
+                  root.setBackgroundColor(dark ? Color.rgb(25, 27, 33) : Color.rgb(215, 220, 228));
                   header();
                   String[] nums = {"1","2","3","4","5","6","7","8","9","0"};
-                  row(nums,nums,48,false);
+                  row(nums, nums, 50, false);
                   if (language.equals("UZ")) uzbek();
                   else if (language.equals("RU")) russian();
                   else english();
