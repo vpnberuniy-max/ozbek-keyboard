@@ -1,4 +1,4 @@
-Name: Build Ozbek Keyboard
+name: Build Ozbek Keyboard
 
 on:
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
 
           cat > build.gradle <<'EOF'
           plugins {
-              id 'com.android.application' version '8.7.3' apply false
+              id 'com.android.application' version '8.5.0' apply false
           }
           EOF
 
@@ -47,13 +47,13 @@ jobs:
           plugins { id 'com.android.application' }
           android {
               namespace 'com.ozbekkeyboard'
-              compileSdk 35
+              compileSdk 34
               defaultConfig {
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
                   targetSdk 34
-                  versionCode 5
-                  versionName '5.1'
+                  versionCode 6
+                  versionName '6.0'
               }
           }
           EOF
@@ -106,11 +106,11 @@ jobs:
                   root.setOrientation(LinearLayout.VERTICAL);
                   root.setPadding(32, 48, 32, 32);
                   TextView title = new TextView(this);
-                  title.setText("🇺🇿 Özbek Keyboard 5.0");
+                  title.setText("🇺🇿 Özbek Keyboard 6.0");
                   title.setTextSize(26);
                   root.addView(title);
                   TextView info = new TextView(this);
-                  info.setText("\nO‘zbekcha maxsus klaviatura (Samsung stilida)\n\n• Ö harfi O va P o‘rtasida\n• Ğ harfi F va G o‘rtasida\n• Ş harfi S va D o‘rtasida\n• Ç harfi C va V o‘rtasida\n• Kengaytirilgan Samsung tugmalar o‘lchami");
+                  info.setText("\nO‘zbekcha maxsus klaviatura (Samsung stilida)\n\n• Ö harfi O va P o‘rtasida\n• Ğ harfi F va G o‘rtasida\n• Ş harfi S va D o‘rtasida\n• Ç harfi C va V o‘rtasida");
                   info.setTextSize(16);
                   root.addView(info);
                   Button enable = new Button(this);
@@ -271,11 +271,8 @@ jobs:
               }
 
               private void uzbek() {
-                  // 1-qator: Ö harfi O va P o'rtasida
                   letters(new String[]{"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "Ö", "P"}, 58);
-                  // 2-qator: S va D o'rtasida Ş, F va G o'rtasida Ğ
                   letters(new String[]{"A", "S", "Ş", "D", "F", "Ğ", "G", "H", "J", "K", "L"}, 58);
-                  // 3-qator: C va V o'rtasida Ç
                   String[] r3 = shift 
                       ? new String[]{"⇧", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"}
                       : new String[]{"⇧", "z", "x", "c", "ç", "v", "b", "n", "m", "⌫"};
