@@ -52,8 +52,8 @@ jobs:
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
                   targetSdk 34
-                  versionCode 6
-                  versionName '6.0'
+                  versionCode 8
+                  versionName '8.0'
               }
           }
           EOF
@@ -106,11 +106,11 @@ jobs:
                   root.setOrientation(LinearLayout.VERTICAL);
                   root.setPadding(32, 48, 32, 32);
                   TextView title = new TextView(this);
-                  title.setText("🇺🇿 Özbek Keyboard 6.0");
+                  title.setText("🇺🇿 Özbek Keyboard 8.0");
                   title.setTextSize(26);
                   root.addView(title);
                   TextView info = new TextView(this);
-                  info.setText("\nO‘zbekcha maxsus klaviatura (Samsung stilida)\n\n• Ö harfi O va P o‘rtasida\n• Ğ harfi F va G o‘rtasida\n• Ş harfi S va D o‘rtasida\n• Ç harfi C va V o‘rtasida");
+                  info.setText("\nSamsung stilidagi mukammal O‘zbekcha klaviatura\n\n• Kichik va katta harflarga o'tish (Shift) to'liq tuzatildi\n• Ichki Emoji paneli qo'shildi\n• Samsung uslubidagi maxsus belgilar (?123) qo'shildi");
                   info.setTextSize(16);
                   root.addView(info);
                   Button enable = new Button(this);
@@ -139,13 +139,13 @@ jobs:
           import android.view.Gravity;
           import android.view.MotionEvent;
           import android.view.inputmethod.InputConnection;
-          import android.view.inputmethod.InputMethodManager;
           import android.widget.TextView;
           import android.widget.LinearLayout;
 
           public class KeyboardService extends InputMethodService {
               private String language = "UZ";
               private boolean dark = true, shift = true, deleting = false;
+              private String mode = "KEYS"; // "KEYS", "EMOJI", "SYMBOLS"
               private LinearLayout root;
               private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -177,18 +177,11 @@ jobs:
                       case "SHIFT": shift = !shift; refresh(); break;
                       case "LANG":
                           language = language.equals("UZ") ? "RU" : language.equals("RU") ? "EN" : "UZ";
-                          shift = true; refresh(); break;
+                          shift = true; mode = "KEYS"; refresh(); break;
                       case "THEME": dark = !dark; refresh(); break;
-                      case "EMOJI":
-                          InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                          if (imm != null) {
-                              try {
-                                  imm.showInputMethodPicker();
-                              } catch (Exception e) {
-                                  ic.commitText("😊", 1);
-                              }
-                          }
-                          break;
+                      case "EMOJI_MODE": mode = "EMOJI"; refresh(); break;
+                      case "SYM_MODE": mode = "SYMBOLS"; refresh(); break;
+                      case "KEY_MODE": mode = "KEYS"; refresh(); break;
                       default: ic.commitText(s, 1); break;
                   }
               }
@@ -203,7 +196,7 @@ jobs:
               private TextView key(String label, String action, boolean special) {
                   TextView b = new TextView(this);
                   b.setText(label);
-                  b.setTextSize(21);
+                  b.setTextSize(20);
                   b.setGravity(Gravity.CENTER);
                   b.setSingleLine(true);
                   b.setTypeface(Typeface.SANS_SERIF, Typeface.NORMAL);
@@ -242,12 +235,14 @@ jobs:
                   root.addView(r);
               }
 
-              private void letters(String[] a, int h) {
-                  String[] labels = new String[a.length];
-                  for (int i = 0; i < a.length; i++) {
-                      labels[i] = shift ? a[i].toUpperCase() : a[i].toLowerCase();
+              private void letters(String[] upperArr, String[] lowerArr, int h) {
+                  String[] labels = new String[upperArr.length];
+                  String[] actions = new String[upperArr.length];
+                  for (int i = 0; i < upperArr.length; i++) {
+                      labels[i] = shift ? upperArr[i] : lowerArr[i];
+                      actions[i] = labels[i];
                   }
-                  row(labels, labels, h, false);
+                  row(labels, actions, h, false);
               }
 
               private void header() {
@@ -255,15 +250,15 @@ jobs:
                       new String[]{"", "LANG", "THEME"}, 40, true);
               }
 
-              private void bottom() {
-                  String[] labels = {"🌐", "😊", ",", "space", ".", "⌫", "↵"};
-                  String[] actions = {"LANG", "EMOJI", ",", "SPACE", ".", "⌫", "↵"};
-                  float[] weights = {1.1f, 1.1f, 1f, 4.5f, 1f, 1.2f, 1.3f};
+              private void bottom(boolean isSymbolOrEmoji) {
+                  String[] labels = {"?123", "😊", ",", "space", ".", "⌫", "↵"};
+                  String[] actions = {isSymbolOrEmoji ? "KEY_MODE" : "SYM_MODE", "EMOJI_MODE", ",", "SPACE", ".", "⌫", "↵"};
+                  float[] weights = {1.2f, 1.1f, 1f, 4.2f, 1f, 1.2f, 1.3f};
                   LinearLayout r = new LinearLayout(this);
                   r.setGravity(Gravity.CENTER);
                   for (int i = 0; i < labels.length; i++) {
                       TextView b = key(labels[i], actions[i], true);
-                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(60), weights[i]);
+                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(58), weights[i]);
                       p.setMargins(dp(1.5f), dp(3.5f), dp(1.5f), dp(3.5f));
                       r.addView(b, p);
                   }
@@ -271,27 +266,50 @@ jobs:
               }
 
               private void uzbek() {
-                  letters(new String[]{"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "Ö", "P"}, 58);
-                  letters(new String[]{"A", "S", "Ş", "D", "F", "Ğ", "G", "H", "J", "K", "L"}, 58);
-                  String[] r3 = shift 
-                      ? new String[]{"⇧", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"}
-                      : new String[]{"⇧", "z", "x", "c", "ç", "v", "b", "n", "m", "⌫"};
-                  String[] act3 = {"SHIFT", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"};
-                  row(r3, act3, 58, true);
+                  letters(new String[]{"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "Ö", "P"}, 
+                          new String[]{"q", "w", "e", "r", "t", "y", "u", "i", "o", "ö", "p"}, 56);
+                  letters(new String[]{"A", "S", "Ş", "D", "F", "Ğ", "G", "H", "J", "K", "L"}, 
+                          new String[]{"a", "s", "ş", "d", "f", "ğ", "g", "h", "j", "k", "l"}, 56);
+                  
+                  String[] r3Labels = shift ? new String[]{"⇧", "Z", "X", "C", "Ç", "V", "B", "N", "M", "⌫"} : new String[]{"⇧", "z", "x", "c", "ç", "v", "b", "n", "m", "⌫"};
+                  String[] r3Actions = {"SHIFT", r3Labels[1], r3Labels[2], r3Labels[3], r3Labels[4], r3Labels[5], r3Labels[6], r3Labels[7], r3Labels[8], "⌫"};
+                  row(r3Labels, r3Actions, 56, true);
               }
 
               private void english() {
-                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"}, 58);
-                  letters(new String[]{"A","S","D","F","G","H","J","K","L"}, 58);
-                  row(new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
-                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"}, 58, true);
+                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"}, 
+                          new String[]{"q","w","e","r","t","y","u","i","o","p"}, 56);
+                  letters(new String[]{"A","S","D","F","G","H","J","K","L"}, 
+                          new String[]{"a","s","d","f","g","h","j","k","l"}, 56);
+                  
+                  String[] r3Labels = shift ? new String[]{"⇧","Z","X","C","V","B","N","M","⌫"} : new String[]{"⇧","z","x","c","v","b","n","m","⌫"};
+                  String[] r3Actions = {"SHIFT", r3Labels[1], r3Labels[2], r3Labels[3], r3Labels[4], r3Labels[5], r3Labels[6], r3Labels[7], "⌫"};
+                  row(r3Labels, r3Actions, 56, true);
               }
 
               private void russian() {
-                  letters(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"}, 58);
-                  letters(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"}, 58);
-                  row(new String[]{"⇧","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},
-                      new String[]{"SHIFT","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"}, 58, true);
+                  letters(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"}, 
+                          new String[]{"й","ц","у","к","е","н","г","ш","щ","з","х"}, 56);
+                  letters(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"}, 
+                          new String[]{"ф","ы","в","а","п","р","о","л","д","ж","э"}, 56);
+                  
+                  String[] r3Labels = shift ? new String[]{"⇧","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"} : new String[]{"⇧","я","ч","с","м","и","т","ь","б","ю","⌫"};
+                  String[] r3Actions = {"SHIFT", r3Labels[1], r3Labels[2], r3Labels[3], r3Labels[4], r3Labels[5], r3Labels[6], r3Labels[7], r3Labels[8], r3Labels[9], "⌫"};
+                  row(r3Labels, r3Actions, 56, true);
+              }
+
+              private void symbols() {
+                  row(new String[]{"1","2","3","4","5","6","7","8","9","0"}, new String[]{"1","2","3","4","5","6","7","8","9","0"}, 54, false);
+                  row(new String[]{"@","#","$","_","&","-","+","(",")","/"}, new String[]{"@","#","$","_","&","-","+","(",")","/"}, 54, false);
+                  row(new String[]{"*",":",";","!","?","\"","'","\\","⌫"}, new String[]{"*",":",";","!","?","\"","'","\\","⌫"}, 54, true);
+                  bottom(true);
+              }
+
+              private void emojis() {
+                  row(new String[]{"😀","😂","😍","😎","😊","👍","🔥","❤️","✨","🙏"}, new String[]{"😀","😂","😍","😎","😊","👍","🔥","❤️","✨","🙏"}, 54, false);
+                  row(new String[]{"🎉","👑","😢","😡","🤔","👀","💯","🎉","💡","🚀"}, new String[]{"🎉","👑","😢","😡","🤔","👀","💯","🎉","💡","🚀"}, 54, false);
+                  row(new String[]{"👍","👎","👏","🤝","💪","💔","🌹","☕","⌫"}, new String[]{"👍","👎","👏","🤝","💪","💔","🌹","☕","⌫"}, 54, true);
+                  bottom(true);
               }
 
               private View makeKeyboard() {
@@ -302,12 +320,19 @@ jobs:
                   root.setPadding(dp(2), dp(4), dp(2), dp(6));
                   root.setBackgroundColor(dark ? Color.rgb(25, 27, 33) : Color.rgb(215, 220, 228));
                   header();
-                  String[] nums = {"1","2","3","4","5","6","7","8","9","0"};
-                  row(nums, nums, 50, false);
-                  if (language.equals("UZ")) uzbek();
-                  else if (language.equals("RU")) russian();
-                  else english();
-                  bottom();
+
+                  if (mode.equals("SYMBOLS")) {
+                      symbols();
+                  } else if (mode.equals("EMOJI")) {
+                      emojis();
+                  } else {
+                      String[] nums = {"1","2","3","4","5","6","7","8","9","0"};
+                      row(nums, nums, 48, false);
+                      if (language.equals("UZ")) uzbek();
+                      else if (language.equals("RU")) russian();
+                      else english();
+                      bottom(false);
+                  }
                   return root;
               }
 
