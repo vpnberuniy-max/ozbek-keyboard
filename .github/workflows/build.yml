@@ -1,11 +1,9 @@
-
 name: Build Ozbek Keyboard
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
@@ -13,41 +11,27 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
       - name: Create Android project
         run: |
-          mkdir -p app/src/main/java/com/ozbekkeyboard
-          mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/java/com/ozbekkeyboard app/src/main/res/xml
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+              repositories { google(); mavenCentral() }
           }
           rootProject.name = "OzbekKeyboard"
           include ':app'
@@ -60,50 +44,36 @@ jobs:
           EOF
 
           cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.ozbekkeyboard'
               compileSdk 35
-
               defaultConfig {
                   applicationId 'com.ozbekkeyboard'
                   minSdk 23
                   targetSdk 28
-                  versionCode 6
-                  versionName '6.0'
+                  versionCode 4
+                  versionName '4.1'
               }
           }
           EOF
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:theme="@android:style/Theme.Material.Light.NoActionBar"
+              <application android:theme="@android:style/Theme.Material.Light.NoActionBar"
                   android:label="Özbek Keyboard">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
+                  <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
                   </activity>
-
-                  <service
-                      android:name=".KeyboardService"
+                  <service android:name=".KeyboardService"
                       android:label="Özbek Keyboard"
                       android:permission="android.permission.BIND_INPUT_METHOD"
                       android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.view.InputMethod"/>
-                      </intent-filter>
-                      <meta-data
-                          android:name="android.view.im"
-                          android:resource="@xml/method"/>
+                      <intent-filter><action android:name="android.view.InputMethod"/></intent-filter>
+                      <meta-data android:name="android.view.im" android:resource="@xml/method"/>
                   </service>
               </application>
           </manifest>
@@ -112,16 +82,13 @@ jobs:
           cat > app/src/main/res/xml/method.xml <<'EOF'
           <input-method xmlns:android="http://schemas.android.com/apk/res/android"
               android:supportsSwitchingToNextInputMethod="true">
-              <subtype
-                  android:label="Özbekcha"
-                  android:imeSubtypeLocale="uz"
+              <subtype android:label="Özbekcha" android:imeSubtypeLocale="uz"
                   android:imeSubtypeMode="keyboard"/>
           </input-method>
           EOF
 
           cat > app/src/main/java/com/ozbekkeyboard/MainActivity.java <<'EOF'
           package com.ozbekkeyboard;
-           
           import android.app.Activity;
           import android.os.Bundle;
           import android.content.Context;
@@ -133,43 +100,27 @@ jobs:
           import android.widget.TextView;
 
           public class MainActivity extends Activity {
-              @Override
-              public void onCreate(Bundle b) {
+              @Override public void onCreate(Bundle b) {
                   super.onCreate(b);
-
                   LinearLayout root = new LinearLayout(this);
-                  root.setOrientation(1);
+                  root.setOrientation(LinearLayout.VERTICAL);
                   root.setPadding(28, 40, 28, 28);
-                  root.setMinimumHeight(dp(360));
                   TextView title = new TextView(this);
-                  title.setText("🇺🇿 Özbek Keyboard 2.0");
+                  title.setText("🇺🇿 Özbek Keyboard 4.0");
                   title.setTextSize(26);
                   root.addView(title);
-
                   TextView info = new TextView(this);
-                  info.setText(
-                      "\nO‘zbekcha maxsus klaviatura\n\n" +
-                      "UZ / RU / EN tillari\n" +
-                      "Ö Ğ Ç Ş maxsus harflari\n" +
-                      "Katta tugmalar va tez o‘chirish\n\n" +
-                      "Klaviaturani yoqish va tanlash uchun tugmalardan foydalaning."
-                  );
+                  info.setText("\nO‘zbekcha maxsus klaviatura\n\nUZ / RU / EN tillari\nÖ Ğ Ç Ş maxsus harflari\nKattaroq tugmalar va balandroq klaviatura\nO‘chirish tugmasini bosib turib tez o‘chirish");
                   info.setTextSize(17);
                   root.addView(info);
-
                   Button enable = new Button(this);
                   enable.setText("Klaviaturani yoqish");
-                  enable.setOnClickListener(v ->
-                      startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)));
+                  enable.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)));
                   root.addView(enable);
-
                   Button select = new Button(this);
                   select.setText("Klaviaturani tanlash");
-                  select.setOnClickListener(v ->
-                      ((InputMethodManager)getSystemService(
-                          Context.INPUT_METHOD_SERVICE)).showInputMethodPicker());
+                  select.setOnClickListener(v -> ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).showInputMethodPicker());
                   root.addView(select);
-
                   setContentView(root);
               }
           }
@@ -182,7 +133,6 @@ jobs:
           import android.graphics.Color;
           import android.graphics.Typeface;
           import android.graphics.drawable.GradientDrawable;
-          import android.content.res.ColorStateList;
           import android.os.Handler;
           import android.os.Looper;
           import android.view.View;
@@ -193,20 +143,13 @@ jobs:
           import android.widget.LinearLayout;
 
           public class KeyboardService extends InputMethodService {
-
               private String language = "UZ";
-              private boolean dark = true;
-              private boolean shift = true;
+              private boolean dark = true, shift = true, deleting = false;
               private LinearLayout root;
-
-              private final Handler handler =
-                  new Handler(Looper.getMainLooper());
-
-              private boolean deleting = false;
+              private final Handler handler = new Handler(Looper.getMainLooper());
 
               private final Runnable repeatDelete = new Runnable() {
-                  @Override
-                  public void run() {
+                  @Override public void run() {
                       if (deleting) {
                           deleteOnce();
                           handler.postDelayed(this, 65);
@@ -214,297 +157,147 @@ jobs:
                   }
               };
 
-              private int dp(float value) {
-                  return (int)(value * getResources()
-                      .getDisplayMetrics().density + 0.5f);
+              private int dp(float n) {
+                  return (int)(n * getResources().getDisplayMetrics().density + 0.5f);
               }
 
               private void deleteOnce() {
                   InputConnection ic = getCurrentInputConnection();
-                  if (ic == null) return;
-
-                  if (android.os.Build.VERSION.SDK_INT >= 24) {
-                      ic.deleteSurroundingTextInCodePoints(1, 0);
-                  } else {
-                      ic.deleteSurroundingText(1, 0);
-                  }
+                  if (ic != null) ic.deleteSurroundingText(1, 0);
               }
 
               private void type(String s) {
                   InputConnection ic = getCurrentInputConnection();
                   if (ic == null) return;
-
-                  if (s.equals("⌫")) {
-                      deleteOnce();
-                  } else if (s.equals("↵")) {
-                      ic.commitText("\n", 1);
-                  } else if (s.equals("SPACE")) {
-                      ic.commitText(" ", 1);
-                  } else if (s.equals("SHIFT")) {
-                      shift = !shift;
-                      refresh();
-                  } else if (s.equals("LANG")) {
-                      language = language.equals("UZ") ? "RU" :
-                          language.equals("RU") ? "EN" : "UZ";
-                      shift = true;
-                      refresh();
-                  } else if (s.equals("THEME")) {
-                      dark = !dark;
-                      refresh();
-                  } else if (s.equals("EMOJI")) {
-                      ic.commitText("🙂", 1);
-                  } else {
-                      ic.commitText(s, 1);
+                  switch (s) {
+                      case "⌫": deleteOnce(); break;
+                      case "↵": ic.commitText("\n", 1); break;
+                      case "SPACE": ic.commitText(" ", 1); break;
+                      case "SHIFT": shift = !shift; refresh(); break;
+                      case "LANG":
+                          language = language.equals("UZ") ? "RU" : language.equals("RU") ? "EN" : "UZ";
+                          shift = true; refresh(); break;
+                      case "THEME": dark = !dark; refresh(); break;
+                      case "EMOJI": ic.commitText("🙂", 1); break;
+                      default: ic.commitText(s, 1); break;
                   }
               }
 
-              private GradientDrawable background(int color) {
-                  GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(color);
-                  bg.setCornerRadius(dp(7));
-                  return bg;
+              private GradientDrawable bg(int color) {
+                  GradientDrawable d = new GradientDrawable();
+                  d.setColor(color);
+                  d.setCornerRadius(dp(8));
+                  return d;
               }
 
-              private TextView key(String label, String action,
-                                   boolean special) {
+              private TextView key(String label, String action, boolean special) {
                   TextView b = new TextView(this);
                   b.setText(label);
-                  b.setTextSize(20);
+                  b.setTextSize(19);
                   b.setGravity(Gravity.CENTER);
                   b.setSingleLine(true);
                   b.setTypeface(Typeface.DEFAULT);
-                  b.setPadding(dp(1), 0, dp(1), 0);
-
                   int color = dark
-                      ? (special ? Color.rgb(83, 91, 110) :
-                          Color.rgb(66, 69, 77))
-                      : (special ? Color.rgb(190, 202, 220) :
-                          Color.WHITE);
-
-                  b.setBackground(background(color));
-                  b.setTextColor(dark ? Color.WHITE : Color.rgb(30, 30, 30));
-
-                  if (action.equals("⌫")) {
-                      b.setOnTouchListener((v, event) -> {
-                          switch (event.getAction()) {
-                              case MotionEvent.ACTION_DOWN:
-                                  deleting = true;
-                                  deleteOnce();
-                                  handler.postDelayed(repeatDelete, 400);
-                                  return true;
-
-                              case MotionEvent.ACTION_UP:
-                              case MotionEvent.ACTION_CANCEL:
-                                  deleting = false;
-                                  handler.removeCallbacks(repeatDelete);
-                                  return true;
+                      ? (special ? Color.rgb(83,91,110) : Color.rgb(66,69,77))
+                      : (special ? Color.rgb(190,202,220) : Color.WHITE);
+                  b.setBackground(bg(color));
+                  b.setTextColor(dark ? Color.WHITE : Color.rgb(30,30,30));
+                  if ("⌫".equals(action)) {
+                      b.setOnTouchListener((v,e) -> {
+                          if (e.getAction() == MotionEvent.ACTION_DOWN) {
+                              deleting = true; deleteOnce(); handler.postDelayed(repeatDelete, 400); return true;
+                          }
+                          if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
+                              deleting = false; handler.removeCallbacks(repeatDelete); return true;
                           }
                           return true;
                       });
-                  } else {
-                      b.setOnClickListener(v -> type(action));
-                  }
-
+                  } else b.setOnClickListener(v -> type(action));
                   return b;
               }
 
-              private void addRow(String[] labels, int height) {
-                  LinearLayout row = new LinearLayout(this);
-                  row.setOrientation(LinearLayout.HORIZONTAL);
-                  row.setGravity(Gravity.CENTER);
-
-                  for (String label : labels) {
-                      TextView b = key(label, label, false);
-                      LinearLayout.LayoutParams p =
-                          new LinearLayout.LayoutParams(0, dp(height), 1);
+              private void row(String[] labels, String[] actions, int height, boolean special) {
+                  LinearLayout r = new LinearLayout(this);
+                  r.setOrientation(LinearLayout.HORIZONTAL);
+                  r.setGravity(Gravity.CENTER);
+                  for (int i=0; i<labels.length; i++) {
+                      TextView b = key(labels[i], actions[i], special);
+                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(height), 1);
                       p.setMargins(dp(2), dp(3), dp(2), dp(3));
-                      row.addView(b, p);
+                      r.addView(b,p);
                   }
-                  root.addView(row);
+                  root.addView(r);
               }
 
-              private void addSpecialRow(String[] labels,
-                                         String[] actions) {
-                  LinearLayout row = new LinearLayout(this);
-                  row.setGravity(Gravity.CENTER);
+              private void letters(String[] a, int h) {
+                  String[] labels = new String[a.length];
+                  for (int i=0; i<a.length; i++) labels[i] = shift ? a[i].toUpperCase() : a[i].toLowerCase();
+                  row(labels, labels, h, false);
+              }
 
-                  for (int i = 0; i < labels.length; i++) {
-                      String label = labels[i];
-                      String action = actions[i];
+              private void header() {
+                  row(new String[]{"Özbek Keyboard", language+" ▼", dark ? "☀" : "☾"},
+                      new String[]{"", "LANG", "THEME"}, 42, true);
+              }
 
-                      TextView b = key(label, action, true);
-
-                      LinearLayout.LayoutParams p =
-                          new LinearLayout.LayoutParams(0, dp(48), 1);
-                      p.setMargins(dp(2), dp(3), dp(2), dp(3));
-                      row.addView(b, p);
+              private void bottom() {
+                  String[] labels = {"🌐","☺",",","space",".","⌫","↵"};
+                  String[] actions = {"LANG","EMOJI",",","SPACE",".","⌫","↵"};
+                  float[] weights = {1,1,1,4,1,1,1};
+                  LinearLayout r = new LinearLayout(this);
+                  r.setGravity(Gravity.CENTER);
+                  for (int i=0; i<labels.length; i++) {
+                      TextView b = key(labels[i],actions[i],true);
+                      LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0,dp(56),weights[i]);
+                      p.setMargins(dp(2),dp(3),dp(2),dp(3));
+                      r.addView(b,p);
                   }
-                  root.addView(row);
+                  root.addView(r);
               }
 
-              private void addBottom() {
-                  LinearLayout row = new LinearLayout(this);
-                  row.setGravity(Gravity.CENTER);
-
-                  String[] labels = {
-                      "🌐", "☺", ",", "space", ".", "⌫", "↵"
-                  };
-
-                  String[] actions = {
-                      "LANG", "EMOJI", ",", "SPACE", ".", "⌫", "↵"
-                  };
-
-                  float[] weights = {1, 1, 1, 4, 1, 1, 1};
-
-                  for (int i = 0; i < labels.length; i++) {
-                      TextView b = key(labels[i], actions[i], true);
-
-                      LinearLayout.LayoutParams p =
-                          new LinearLayout.LayoutParams(0, dp(65), weights[i]);
-                      p.setMargins(dp(2), dp(3), dp(2), dp(3));
-                      row.addView(b, p);
-                  }
-                  root.addView(row);
+              private void uzbek() {
+                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"},52);
+                  letters(new String[]{"A","S","D","F","G","H","J","K","L"},52);
+                  row(new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
+                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"},54,true);
+                  String[] special = {shift?"Ö":"ö",shift?"Ğ":"ğ",shift?"Ç":"ç",shift?"Ş":"ş"};
+                  row(special,special,48,true);
               }
 
-              private void addHeader() {
-                  LinearLayout row = new LinearLayout(this);
-                  row.setGravity(Gravity.CENTER);
-
-                  String[] labels = {
-                      "Özbek Keyboard", language + " ▼",
-                      dark ? "☀" : "☾"
-                  };
-
-                  String[] actions = {"", "LANG", "THEME"};
-
-                  for (int i = 0; i < labels.length; i++) {
-                      TextView b = key(labels[i], actions[i], true);
-                      LinearLayout.LayoutParams p =
-                          new LinearLayout.LayoutParams(0, dp(40),
-                              i == 0 ? 2 : 1);
-                      p.setMargins(dp(2), dp(2), dp(2), dp(2));
-                      row.addView(b, p);
-                  }
-                  root.addView(row);
+              private void english() {
+                  letters(new String[]{"Q","W","E","R","T","Y","U","I","O","P"},52);
+                  letters(new String[]{"A","S","D","F","G","H","J","K","L"},52);
+                  row(new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
+                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"},54,true);
               }
 
-              private void addNumbers() {
-                  addRow(new String[]{
-                      "1","2","3","4","5",
-                      "6","7","8","9","0"
-                  }, 52);
-              }
-
-              private String convert(String s) {
-                  if (shift) return s.toUpperCase();
-                  return s.toLowerCase();
-              }
-
-              private void addLetters(String[] keys) {
-                  String[] result = new String[keys.length];
-                  for (int i = 0; i < keys.length; i++) {
-                      result[i] = convert(keys[i]);
-                  }
-                  addRow(result, 58);
-              }
-
-              private void addUzbek() {
-                  addLetters(new String[]{
-                      "Q","W","E","R","T","Y","U","I","O","P"
-                  });
-
-                  addLetters(new String[]{
-                      "A","S","D","F","G","H","J","K","L"
-                  });
-
-                  String[] labels = new String[13];
-                  String[] actions = new String[13];
-
-                  labels[0] = "⇧";
-                  actions[0] = "SHIFT";
-
-                  String[] letters = {
-                      "Z","X","C","V","B","N","M","Ö","Ğ","Ç","Ş"
-                  };
-
-                  for (int i = 0; i < letters.length; i++) {
-                      labels[i + 1] = convert(letters[i]);
-                      actions[i + 1] = labels[i + 1];
-                  }
-
-                  labels[12] = "⌫";
-                  actions[12] = "⌫";
-
-                  addSpecialRow(labels, actions);
-              }
-
-              private void addEnglish() {
-                  addLetters(new String[]{
-                      "Q","W","E","R","T","Y","U","I","O","P"
-                  });
-                  addLetters(new String[]{
-                      "A","S","D","F","G","H","J","K","L"
-                  });
-
-                  addSpecialRow(
-                      new String[]{"⇧","Z","X","C","V","B","N","M","⌫"},
-                      new String[]{"SHIFT","Z","X","C","V","B","N","M","⌫"}
-                  );
-              }
-
-              private void addRussian() {
-                  addLetters(new String[]{
-                      "Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"
-                  });
-                  addLetters(new String[]{
-                      "Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"
-                  });
-
-                  addSpecialRow(
-                      new String[]{"⇧","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},
-                      new String[]{"SHIFT","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"}
-                  );
+              private void russian() {
+                  letters(new String[]{"Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х"},52);
+                  letters(new String[]{"Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"},52);
+                  row(new String[]{"⇧","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},
+                      new String[]{"SHIFT","Я","Ч","С","М","И","Т","Ь","Б","Ю","⌫"},54,true);
               }
 
               private View makeKeyboard() {
                   deleting = false;
                   handler.removeCallbacks(repeatDelete);
-
                   root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(dp(3), dp(4), dp(3), dp(5));
-                  root.setBackgroundColor(dark
-                      ? Color.rgb(34, 36, 42)
-                      : Color.rgb(220, 224, 231));
-
-                  addHeader();
-                  addNumbers();
-
-                  if (language.equals("UZ")) {
-                      addUzbek();
-                  } else if (language.equals("RU")) {
-                      addRussian();
-                  } else {
-                      addEnglish();
-                  }
-
-                  addBottom();
-
+                  root.setPadding(dp(3),dp(4),dp(3),dp(5));
+                  root.setBackgroundColor(dark ? Color.rgb(34,36,42) : Color.rgb(220,224,231));
+                  header();
+                  String[] nums = {"1","2","3","4","5","6","7","8","9","0"};
+                  row(nums,nums,48,false);
+                  if (language.equals("UZ")) uzbek();
+                  else if (language.equals("RU")) russian();
+                  else english();
+                  bottom();
                   return root;
               }
 
-              private void refresh() {
-                  setInputView(makeKeyboard());
-              }
-
-              @Override
-              public View onCreateInputView() {
-                  return makeKeyboard();
-              }
-
-              @Override
-              public void onFinishInputView(boolean finishingInput) {
+              private void refresh() { setInputView(makeKeyboard()); }
+              @Override public View onCreateInputView() { return makeKeyboard(); }
+              @Override public void onFinishInputView(boolean finishingInput) {
                   deleting = false;
                   handler.removeCallbacks(repeatDelete);
                   super.onFinishInputView(finishingInput);
@@ -520,4 +313,3 @@ jobs:
         with:
           name: Ozbek-Keyboard-APK
           path: app/build/outputs/apk/debug/app-debug.apk
-          
